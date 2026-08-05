@@ -29,7 +29,7 @@ class LLM_Gateway:
         if not self.keys["gemini"]:
             raise ValueError("[LLM001] GEMINI_API_KEY missing in environment.")
         
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
         headers = {
             "Content-Type": "application/json",
             "X-goog-api-key": self.keys["gemini"]
