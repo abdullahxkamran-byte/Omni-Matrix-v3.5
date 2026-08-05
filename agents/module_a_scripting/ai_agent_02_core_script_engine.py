@@ -77,11 +77,17 @@ class Ai_Agent_02_Core_Script_Engine:
         rendering_engine = global_config.get("rendering_engine", "Dynamic/Unbound")
         color_lighting = global_config.get("color_lighting", "Dynamic/Unbound")
         kinetic_framing = global_config.get("kinetic_framing", "Dynamic/Unbound")
+        
+        # FIX: Fetch target_duration_sec from global_config (defaulting to 30 if missing)
+        target_duration_sec = global_config.get("target_duration_sec", 30)
+        
         master_theme = runtime_data.get("master_theme_blueprint", f"{medium} - {rendering_engine}")
         project_id = state.get("project_id", "UNKNOWN_PROJECT")
 
         # Load Prompt
         prompts_dir = state.get("paths", {}).get("prompts_dir", "prompts")
+        
+        # THE FIX IS HERE: Added 'target_duration_sec' to the variables dictionary
         variables = {
             "core_topic": core_topic,
             "master_theme": master_theme,
@@ -89,6 +95,7 @@ class Ai_Agent_02_Core_Script_Engine:
             "rendering_engine": rendering_engine,
             "color_lighting": color_lighting,
             "kinetic_framing": kinetic_framing,
+            "target_duration_sec": target_duration_sec,
             "selected_hook_json": selected_hook_json
         }
         
