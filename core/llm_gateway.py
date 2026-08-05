@@ -93,7 +93,7 @@ class LLM_Gateway:
         
         if provider_chain is None:
             provider_chain = [
-                {"provider": "gemini", "model": "gemini-1.5-flash"},
+                {"provider": "gemini", "model": "gemini-flash-latest"},
                 {"provider": "openai", "model": "gpt-4o-mini"}
             ]
 
