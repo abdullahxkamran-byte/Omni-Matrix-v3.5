@@ -10,10 +10,11 @@ INPUT DATA:
 PRODUCTION INSTRUCTIONS & AESTHETIC DIRECTIVES:
 1. KEYWORD LOCK-IN: Provide exactly 3 highly specific aesthetic keywords (e.g., "Cyberpunk", "Ethereal", "Gritty") that downstream visual agents must follow.
 2. MATHEMATICAL COLOR GRADING: Provide exact 6-character HEX codes (including the #) for the Primary and Secondary colors that fit the mood.
-3. BPM TARGET: Analyze the overall tension and output a strict mathematical BPM (Beats Per Minute) range for the background music (e.g., "90-105", "140-160").
-4. MUSICAL GENRE: Specify the exact musical genre and sub-genre (e.g., "Dark Synthwave", "Orchestral Doom", "Lo-Fi Chillhop").
-5. VIBE SHIFT POINT: Identify at what percentage of the video (0 to 100) the major mood/tension shifts. If the vibe is constant throughout, output 0.
-6. Do NOT leave any JSON fields empty or missing. Ensure HEX codes are strictly formatted as #RRGGBB.
+3. GLOBAL STYLE LOCK: Define strict visual parameters to ensure consistency across all downstream 3D/VFX agents. This includes Art Style, Lighting Style, Color Grading, Lens Style, Aspect Ratio, and a Character Consistency Palette (a list of 3-5 HEX colors for character outfits/skin/accents).
+4. BPM TARGET: Analyze the overall tension and output a strict mathematical BPM (Beats Per Minute) range for the background music (e.g., "90-105", "140-160").
+5. MUSICAL GENRE: Specify the exact musical genre and sub-genre (e.g., "Dark Synthwave", "Orchestral Doom", "Lo-Fi Chillhop").
+6. VIBE SHIFT POINT: Identify at what percentage of the video (0 to 100) the major mood/tension shifts. If the vibe is constant throughout, output 0.
+7. Do NOT leave any JSON fields empty or missing. Ensure all HEX codes are strictly formatted as #RRGGBB.
 
 Return ONLY valid JSON matching this exact schema:
 {{
@@ -21,6 +22,14 @@ Return ONLY valid JSON matching this exact schema:
     "global_aesthetic_keywords": ["Keyword1", "Keyword2", "Keyword3"],
     "primary_color_hex": "#000000",
     "secondary_color_hex": "#FFFFFF",
+    "global_style_lock": {{
+      "art_style": "Realistic / Anime / Pixar / Stylized Fantasy",
+      "lighting_style": "High-contrast chiaroscuro / Soft diffused / Neon glow",
+      "color_grading": "Teal and Orange / Muted Matte / Vibrant Saturation",
+      "lens_style": "24mm wide angle / Anamorphic distortion / Telephoto bokeh",
+      "aspect_ratio_lock": "16:9 / 9:16 / 2.35:1",
+      "character_consistency_palette": ["#FF0000", "#00FF00", "#0000FF"]
+    }},
     "target_bpm_range": "120-130",
     "musical_genre_directive": "Exact genre description",
     "vibe_shift_timestamp_percent": 65
