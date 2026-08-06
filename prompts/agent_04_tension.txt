@@ -12,8 +12,14 @@ PRODUCTION INSTRUCTIONS:
 1. 1-TO-1 MAPPING RULE: Generate exactly ONE tension analysis block for EVERY scene provided in the input. Do not combine or skip scenes.
 2. TENSION SCORING: Assign a "tension_score" strictly as an integer between 1 and 10 (1 = completely calm/boring, 10 = absolute climax/shock).
 3. RETENTION RISK: Evaluate the "viewer_retention_risk" purely as "High", "Medium", or "Low" based on the scene's pacing and hook strength.
-4. PACING ADJUSTMENT: Provide a micro-recommendation on how downstream audio/editing agents should treat this scene to fix any pacing dips (e.g., "Accelerate cuts", "Let silence breathe", "Inject heavy sub-bass").
-5. Do NOT leave any JSON fields empty, null, or missing.
+4. EDITING & TIMING DIRECTIVES: To maintain high retention, provide specific editing directives for the scene:
+   - zoom_directive: Specify where and how to zoom (e.g., "Crash zoom into subject", "Slow push-in", or "None").
+   - speed_ramp_directive: Specify speed ramps (e.g., "Ramp up during action", or "None").
+   - slow_motion_directive: Specify slow-motion moments (e.g., "Slow-mo on impact", or "None").
+   - flash_frame_directive: Specify subliminal cuts/flashes (e.g., "2-frame white flash on beat drop", or "None").
+   - scene_split_recommendation: Suggest if/where the scene should be split for better pacing (e.g., "Split after dialogue pause", or "None").
+5. PACING ADJUSTMENT: Provide a micro-recommendation on how downstream audio/editing agents should treat this scene to fix any pacing dips.
+6. Do NOT leave any JSON fields empty, null, or missing.
 
 Return ONLY valid JSON matching this exact schema:
 {{
@@ -23,6 +29,11 @@ Return ONLY valid JSON matching this exact schema:
       "tension_score": 8,
       "emotional_beat": "Initial shock / Curiosity",
       "viewer_retention_risk": "Low",
+      "zoom_directive": "Crash zoom into subject's eyes",
+      "speed_ramp_directive": "None",
+      "slow_motion_directive": "None",
+      "flash_frame_directive": "White flash on impact",
+      "scene_split_recommendation": "Split after the first sentence for a dramatic pause",
       "pacing_adjustment_recommendation": "Fast cuts, punchy audio drop"
     }}
   ]
