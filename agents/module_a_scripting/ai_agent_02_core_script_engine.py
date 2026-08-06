@@ -16,6 +16,7 @@ class Ai_Agent_02_Core_Script_Engine:
             "required_assets"
         ]
         self.asset_sub_keys = [
+            "asset_priority",
             "characters",
             "voice_speaker",
             "props",
@@ -56,6 +57,10 @@ class Ai_Agent_02_Core_Script_Engine:
                             print(f"[{self.agent_name}] Validation Failed: Missing '{sub_key}' in required_assets.", flush=True)
                             return False
                     
+                    if val.get("asset_priority") not in ["Critical", "Important", "Optional"]:
+                        print(f"[{self.agent_name}] Validation Failed: Invalid asset_priority '{val.get('asset_priority')}'.", flush=True)
+                        return False
+
                     chars = val.get("characters", [])
                     if not isinstance(chars, list):
                         print(f"[{self.agent_name}] Validation Failed: 'characters' must be a list.", flush=True)
