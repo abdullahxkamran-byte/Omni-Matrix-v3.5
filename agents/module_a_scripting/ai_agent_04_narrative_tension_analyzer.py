@@ -11,11 +11,15 @@ class Ai_Agent_04_Narrative_Tension_Analyzer:
             "tension_score",
             "emotional_beat",
             "viewer_retention_risk",
+            "zoom_directive",
+            "speed_ramp_directive",
+            "slow_motion_directive",
+            "flash_frame_directive",
+            "scene_split_recommendation",
             "pacing_adjustment_recommendation"
         ]
 
     def _validate_tension_deep(self, tension_data: list, expected_scene_count: int) -> bool:
-        """Deep validation for strict mapping and numerical bounds."""
         if not isinstance(tension_data, list):
             print(f"[{self.agent_name}] Validation Failed: Output is not a list.", flush=True)
             return False
@@ -36,13 +40,11 @@ class Ai_Agent_04_Narrative_Tension_Analyzer:
                 
                 val = beat[key]
                 
-                # Check integer boundary for tension score
                 if key == "tension_score":
                     if not isinstance(val, int) or val < 1 or val > 10:
                         print(f"[{self.agent_name}] Validation Failed: tension_score '{val}' must be an integer between 1 and 10.", flush=True)
                         return False
                         
-                # Check strict strings for retention risk
                 if key == "viewer_retention_risk":
                     if val not in valid_risks:
                         print(f"[{self.agent_name}] Validation Failed: Invalid retention risk '{val}'.", flush=True)
@@ -60,33 +62,30 @@ class Ai_Agent_04_Narrative_Tension_Analyzer:
 
         workspace_dir = state.get("workspace_dir", "")
         if not workspace_dir:
-            raise ValueError(f"[{self.agent_name}] [AG001] CRITICAL: 'workspace_dir' missing in state.")
+            raise ValueError(f"[{self.agent_name}] CRITICAL: 'workspace_dir' missing in state.")
 
         sm = State_Manager(workspace_dir)
         runtime_data = state.setdefault("runtime_data", {})
         module_scripting = runtime_data.setdefault("module_a_scripting", {})
 
-        # Idempotency Scrubbing
         if "agent_04_tension_analysis" in module_scripting:
             del module_scripting["agent_04_tension_analysis"]
             print(f"[{self.agent_name}] Idempotency sweep executed.", flush=True)
 
-        # Retrieve Dependencies (Agent 02 & Agent 03)
         script_scenes = module_scripting.get("agent_02_script", [])
         storyboard_panels = module_scripting.get("agent_03_storyboard", [])
 
         if not script_scenes or not storyboard_panels:
-            raise ValueError(f"[{self.agent_name}] [AG002] CRITICAL: Missing Script or Storyboard. Agents 02 and 03 must run first.")
+            raise ValueError(f"[{self.agent_name}] CRITICAL: Missing Script or Storyboard. Agents 02 and 03 must run first.")
 
         if len(script_scenes) != len(storyboard_panels):
-             raise ValueError(f"[{self.agent_name}] [AG002] CRITICAL: Pipeline corruption. Script count ({len(script_scenes)}) and Storyboard count ({len(storyboard_panels)}) mismatch.")
+             raise ValueError(f"[{self.agent_name}] CRITICAL: Pipeline corruption. Script count ({len(script_scenes)}) and Storyboard count ({len(storyboard_panels)}) mismatch.")
 
         expected_scene_count = len(script_scenes)
         script_json = json.dumps(script_scenes, indent=2)
         storyboard_json = json.dumps(storyboard_panels, indent=2)
         project_id = state.get("project_id", "UNKNOWN_PROJECT")
 
-        # Load Prompt
         prompts_dir = state.get("paths", {}).get("prompts_dir", "prompts")
         variables = {
             "script_json": script_json,
@@ -95,7 +94,6 @@ class Ai_Agent_04_Narrative_Tension_Analyzer:
         
         prompt = Prompt_Manager.load(prompts_dir, "agent_04_tension.txt", variables)
 
-        # AI Generation via Central Gateway (Lower Temperature for Analytical Consistency)
         gateway = LLM_Gateway()
         response = gateway.generate(
             prompt=prompt,
@@ -107,11 +105,9 @@ class Ai_Agent_04_Narrative_Tension_Analyzer:
 
         tension_data = response["data"]["agent_04_tension_analysis"]
         
-        # Deep Schema & Boundary Validation
         if not self._validate_tension_deep(tension_data, expected_scene_count):
-            raise ValueError(f"[{self.agent_name}] [AG003] Deep Schema Validation Failed. Score bounds or count mismatch.")
+            raise ValueError(f"[{self.agent_name}] Deep Schema Validation Failed. Score bounds or count mismatch.")
 
-        # Update State Memory
         module_scripting["agent_04_tension_analysis"] = tension_data
         state.setdefault("metrics", {})[self.agent_name] = response["metrics"]
 
@@ -119,10 +115,8 @@ class Ai_Agent_04_Narrative_Tension_Analyzer:
         pipeline_status["last_active_agent"] = self.agent_name
         pipeline_status[self.agent_name] = "COMPLETED"
 
-        # Atomic Safe Save
         sm.save_state(state)
 
-        # Log Execution
         exec_time = response["metrics"]["execution_time_sec"]
         provider = response["metrics"]["provider"]
         avg_tension = round(sum(b["tension_score"] for b in tension_data) / len(tension_data), 1)
