@@ -19,7 +19,8 @@ PRODUCTION INSTRUCTIONS & CINEMATIC DIRECTIVES:
 5. VISUAL DIRECTIVES: Every scene MUST include comprehensive visual directives aligned strictly with the 4-Axis parameters ({medium}, {rendering_engine}, {color_lighting}, {kinetic_framing}).
 6. SILENCE RULE: If a scene is purely visual or requires NO spoken dialogue/narration (e.g., dramatic pause, pure action sequence), set "narration_text" strictly to "None".
 7. NO SFX RULE: If a scene requires no specific Foley/SFX, set "audio_foley_directive" strictly to "None".
-8. DETAILED ASSET EXTRACTION: Extract all required production assets for each scene into "required_assets". 
+8. DETAILED ASSET EXTRACTION: Extract all required production assets for each scene into "required_assets".
+   - "asset_priority" MUST be a string specifying generation strictness: "Critical", "Important", or "Optional".
    - "characters" MUST be a list of dicts with keys: "name", "gender", "age", "outfit".
    - "voice_speaker" MUST be a string specifying who speaks (e.g., "Narrator", character name, or "None").
    - "props", "animals_creatures", "vehicles", and "fx_requirements" MUST be lists of strings (use [] if none).
@@ -37,6 +38,7 @@ Return ONLY valid JSON matching this exact schema:
       "pacing_tempo": "Pacing profile e.g., Fast/Aggressive, Moderate, Slow/Mysterious",
       "estimated_duration_sec": 3.5,
       "required_assets": {{
+        "asset_priority": "Critical",
         "characters": [
           {{
             "name": "Character Name or Description",
