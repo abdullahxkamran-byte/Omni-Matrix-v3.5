@@ -14,19 +14,24 @@ INPUT SCRIPT SCENES:
 
 PRODUCTION INSTRUCTIONS & CINEMATIC DIRECTIVES:
 1. 1-TO-1 MAPPING RULE: You MUST generate exactly ONE storyboard panel for EVERY scene provided in the input script. Do not combine scenes, do not skip scenes, and do not invent new scenes.
-2. VISUAL TRANSLATION: Translate the script's "visual_directive" and "narration_text" into exact technical camera instructions, subject blocking, and lighting setups.
-3. ALIGNMENT: Ensure the visual style strictly follows the 4-Axis parameters ({medium}, {rendering_engine}, {color_lighting}, {kinetic_framing}).
-4. VFX IDENTIFICATION: Explicitly list any secondary visual effects needed (e.g., volumetric fog, glowing particles, speed lines, camera shake). If none are needed, strictly output "None".
-5. Do NOT leave any JSON fields empty, null, or missing.
+2. HIGH VISUAL DENSITY (MICRO-SHOTS): For modern short-form content, a single scene must have multiple dynamic camera angles. Generate a list of "micro_camera_cuts" for each scene to increase visual density.
+3. VISUAL TRANSLATION: Translate the script's "visual_directive" and "narration_text" into exact technical camera instructions, subject blocking, and lighting setups.
+4. ALIGNMENT: Ensure the visual style strictly follows the 4-Axis parameters ({medium}, {rendering_engine}, {color_lighting}, {kinetic_framing}).
+5. VFX IDENTIFICATION: Explicitly list any secondary visual effects needed (e.g., volumetric fog, glowing particles, speed lines, camera shake). If none are needed, strictly output "None".
+6. Do NOT leave any JSON fields empty, null, or missing.
 
 Return ONLY valid JSON matching this exact schema:
 {{
   "agent_03_storyboard": [
     {{
       "scene_id": "scene_01",
-      "frame_composition": "E.g., Extreme Close-up, Wide Establishing Shot, Dutch Angle",
+      "frame_composition": "E.g., Extreme Close-up, Wide Establishing Shot",
       "subject_action": "Exact physical action or placement of the main subject/character in the frame",
-      "camera_angle_motion": "E.g., Fast pan right, slow push-in dolly, static locked-off, orbital FPV",
+      "micro_camera_cuts": [
+        "Cut 1: Fast whip pan left",
+        "Cut 2: Static locked-off close up",
+        "Cut 3: Slow push-in dolly"
+      ],
       "lighting_atmosphere": "Detailed description of shadows, light direction, and atmospheric feel",
       "vfx_assets_needed": "E.g., Embers, depth of field blur, lens flares, or 'None'"
     }}
