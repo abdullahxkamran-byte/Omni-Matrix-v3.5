@@ -11,9 +11,18 @@ class Ai_Agent_07_Vibe_Enhancer:
             "global_aesthetic_keywords",
             "primary_color_hex",
             "secondary_color_hex",
+            "global_style_lock",
             "target_bpm_range",
             "musical_genre_directive",
             "vibe_shift_timestamp_percent"
+        ]
+        self.style_lock_keys = [
+            "art_style",
+            "lighting_style",
+            "color_grading",
+            "lens_style",
+            "aspect_ratio_lock",
+            "character_consistency_palette"
         ]
 
     def _validate_hex(self, hex_string: str) -> bool:
@@ -49,6 +58,22 @@ class Ai_Agent_07_Vibe_Enhancer:
                     print(f"[{self.agent_name}] Validation Failed: Percentage '{val}' out of 0-100 bounds.", flush=True)
                     return False
 
+            if key == "global_style_lock":
+                if not isinstance(val, dict):
+                    print(f"[{self.agent_name}] Validation Failed: 'global_style_lock' must be a dictionary.", flush=True)
+                    return False
+                for sub_key in self.style_lock_keys:
+                    if sub_key not in val:
+                        print(f"[{self.agent_name}] Validation Failed: Missing '{sub_key}' in global_style_lock.", flush=True)
+                        return False
+                    if sub_key == "character_consistency_palette":
+                        if not isinstance(val[sub_key], list):
+                            print(f"[{self.agent_name}] Validation Failed: 'character_consistency_palette' must be a list.", flush=True)
+                            return False
+                    else:
+                        if isinstance(val[sub_key], str) and len(val[sub_key].strip()) == 0:
+                            return False
+
         return True
 
     def execute(self, state: dict) -> dict:
@@ -58,7 +83,7 @@ class Ai_Agent_07_Vibe_Enhancer:
 
         workspace_dir = state.get("workspace_dir", "")
         if not workspace_dir:
-            raise ValueError(f"[{self.agent_name}] [AG001] CRITICAL: 'workspace_dir' missing.")
+            raise ValueError(f"[{self.agent_name}] CRITICAL: 'workspace_dir' missing.")
 
         sm = State_Manager(workspace_dir)
         runtime_data = state.setdefault("runtime_data", {})
@@ -71,7 +96,7 @@ class Ai_Agent_07_Vibe_Enhancer:
         arc_data = module_scripting.get("agent_05_story_arc", {})
 
         if not tension_data or not arc_data:
-            raise ValueError(f"[{self.agent_name}] [AG002] CRITICAL: Missing Tension or Story Arc dependencies.")
+            raise ValueError(f"[{self.agent_name}] CRITICAL: Missing Tension or Story Arc dependencies.")
 
         core_topic = runtime_data.get("core_topic", state.get("user_prompt", ""))
         global_config = state.get("global_config", {})
@@ -105,7 +130,7 @@ class Ai_Agent_07_Vibe_Enhancer:
         vibe_data = response["data"]["agent_07_vibe"]
         
         if not self._validate_vibe_deep(vibe_data):
-            raise ValueError(f"[{self.agent_name}] [AG003] Validation Failed: HEX code, BPM, or percentage corruption detected.")
+            raise ValueError(f"[{self.agent_name}] Validation Failed: HEX code, BPM, Style Lock or percentage corruption detected.")
 
         module_scripting["agent_07_vibe"] = vibe_data
         state.setdefault("metrics", {})[self.agent_name] = response["metrics"]
