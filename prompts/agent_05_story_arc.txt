@@ -12,7 +12,7 @@ PRODUCTION INSTRUCTIONS & CINEMATIC DIRECTIVES:
 1. MACRO-STRUCTURE: Define the "retention_curve_type" (e.g., "The Viral J-Curve", "Hollywood 3-Act Structure", "Hook-Retain-Payoff").
 2. ACT BREAKDOWN: Group the provided scenes logically into Acts or Chapters. 
 3. 100% SCENE COVERAGE RULE: EVERY single scene_id from the input script MUST be placed into exactly one Act's "scene_ids_included" array. Do not miss any scenes. Do not hallucinate new scene_ids.
-4. CONFLICT INJECTION: Based on the Tension Analysis, if an Act has low tension, invent a "conflict_injection" directive (e.g., "Insert jarring audio glitch transition", "Sudden pacing acceleration") to spike interest. If tension is already high, output "None".
+4. AUTOMATIC CONFLICT INJECTION (MANDATORY): Deeply analyze the Tension Analysis data. If an Act contains any scene with a "viewer_retention_risk" of "High" or "Medium", or a tension score below 6, you MUST provide an aggressive, multi-sensory "conflict_injection". Include specific interventions (e.g., "AUDIO: Sub-bass impact. VISUAL: Flash frame glitch. PACING: Immediate speed ramp"). If and ONLY if the entire act is naturally at peak tension, output "None".
 5. Do NOT leave any JSON fields empty, null, or missing.
 
 Return ONLY valid JSON matching this exact schema:
@@ -25,7 +25,7 @@ Return ONLY valid JSON matching this exact schema:
         "act_name": "E.g., Act 1: The Setup",
         "scene_ids_included": ["scene_01", "scene_02"],
         "act_purpose": "The narrative goal of this section",
-        "conflict_injection": "Specific VFX/Audio directive to save retention, or 'None'"
+        "conflict_injection": "Mandatory specific VFX/Audio/Pacing directive to save low retention, or 'None' if already at peak"
       }}
     ]
   }}
