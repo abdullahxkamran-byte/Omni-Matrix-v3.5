@@ -10,13 +10,12 @@ class Ai_Agent_03_Visual_Sync_Storyboarder:
             "scene_id",
             "frame_composition",
             "subject_action",
-            "camera_angle_motion",
+            "micro_camera_cuts",
             "lighting_atmosphere",
             "vfx_assets_needed"
         ]
 
     def _validate_storyboard_deep(self, storyboard_panels: list, expected_scene_count: int) -> bool:
-        """Deep validation to ensure strict 1:1 mapping with script scenes and correct schema."""
         if not isinstance(storyboard_panels, list):
             print(f"[{self.agent_name}] Validation Failed: Output is not a list.", flush=True)
             return False
@@ -32,14 +31,22 @@ class Ai_Agent_03_Visual_Sync_Storyboarder:
                 if key not in panel:
                     print(f"[{self.agent_name}] Validation Failed: Missing key '{key}' in panel.", flush=True)
                     return False
+                
                 val = panel[key]
-                if isinstance(val, str) and len(val.strip()) == 0:
-                    print(f"[{self.agent_name}] Validation Failed: Key '{key}' has an empty string.", flush=True)
-                    return False
+                if key == "micro_camera_cuts":
+                    if not isinstance(val, list) or len(val) == 0:
+                        print(f"[{self.agent_name}] Validation Failed: 'micro_camera_cuts' must be a non-empty list.", flush=True)
+                        return False
+                    for cut in val:
+                        if not isinstance(cut, str) or len(cut.strip()) == 0:
+                            return False
+                else:
+                    if isinstance(val, str) and len(val.strip()) == 0:
+                        print(f"[{self.agent_name}] Validation Failed: Key '{key}' has an empty string.", flush=True)
+                        return False
         return True
 
     def execute(self, state: dict) -> dict:
-        # State & Version Check
         schema_version = state.get("schema_version", "3.0")
         if schema_version != "3.0":
              print(f"[{self.agent_name}] Warning: State schema version '{schema_version}' may not be fully compatible.", flush=True)
@@ -48,17 +55,14 @@ class Ai_Agent_03_Visual_Sync_Storyboarder:
         if not workspace_dir:
             raise ValueError(f"[{self.agent_name}] [AG001] CRITICAL: 'workspace_dir' missing in state.")
 
-        # Initialize Core Systems
         sm = State_Manager(workspace_dir)
         runtime_data = state.setdefault("runtime_data", {})
         module_scripting = runtime_data.setdefault("module_a_scripting", {})
 
-        # Idempotency Scrubbing
         if "agent_03_storyboard" in module_scripting:
             del module_scripting["agent_03_storyboard"]
             print(f"[{self.agent_name}] Idempotency sweep executed.", flush=True)
 
-        # Retrieve Dependencies (Agent 02 Script)
         script_scenes = module_scripting.get("agent_02_script", [])
         if not script_scenes or len(script_scenes) == 0:
             raise ValueError(f"[{self.agent_name}] [AG002] CRITICAL: Missing 'agent_02_script'. Agent 02 must run first.")
@@ -66,7 +70,6 @@ class Ai_Agent_03_Visual_Sync_Storyboarder:
         expected_scene_count = len(script_scenes)
         script_json = json.dumps(script_scenes, indent=2)
 
-        # Extract 4-Axis DNA
         core_topic = runtime_data.get("core_topic", state.get("user_prompt", ""))
         global_config = state.get("global_config", {})
         medium = global_config.get("medium", "Dynamic/Unbound")
@@ -76,7 +79,6 @@ class Ai_Agent_03_Visual_Sync_Storyboarder:
         master_theme = runtime_data.get("master_theme_blueprint", f"{medium} - {rendering_engine}")
         project_id = state.get("project_id", "UNKNOWN_PROJECT")
 
-        # Load Prompt
         prompts_dir = state.get("paths", {}).get("prompts_dir", "prompts")
         variables = {
             "core_topic": core_topic,
@@ -90,7 +92,6 @@ class Ai_Agent_03_Visual_Sync_Storyboarder:
         
         prompt = Prompt_Manager.load(prompts_dir, "agent_03_storyboard.txt", variables)
 
-        # AI Generation via Central Gateway
         gateway = LLM_Gateway()
         response = gateway.generate(
             prompt=prompt,
@@ -102,11 +103,9 @@ class Ai_Agent_03_Visual_Sync_Storyboarder:
 
         storyboard_panels = response["data"]["agent_03_storyboard"]
         
-        # Deep Schema & 1:1 Mapping Validation
         if not self._validate_storyboard_deep(storyboard_panels, expected_scene_count):
             raise ValueError(f"[{self.agent_name}] [AG003] Deep Schema Validation Failed. Panel count or structure mismatch.")
 
-        # Update State Memory
         module_scripting["agent_03_storyboard"] = storyboard_panels
         state.setdefault("metrics", {})[self.agent_name] = response["metrics"]
 
@@ -114,10 +113,8 @@ class Ai_Agent_03_Visual_Sync_Storyboarder:
         pipeline_status["last_active_agent"] = self.agent_name
         pipeline_status[self.agent_name] = "COMPLETED"
 
-        # Atomic Safe Save
         sm.save_state(state)
 
-        # Log Execution
         exec_time = response["metrics"]["execution_time_sec"]
         provider = response["metrics"]["provider"]
         print(f"[{self.agent_name}] INFO: Executed successfully! Mapped {len(storyboard_panels)} storyboard panels to script scenes. (Time: {exec_time}s via {provider})", flush=True)
