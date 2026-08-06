@@ -73,7 +73,7 @@ class Ai_Agent_05_Story_Arc_Architect:
 
         workspace_dir = state.get("workspace_dir", "")
         if not workspace_dir:
-            raise ValueError(f"[{self.agent_name}] [AG001] CRITICAL: 'workspace_dir' missing in state.")
+            raise ValueError(f"[{self.agent_name}] CRITICAL: 'workspace_dir' missing in state.")
 
         sm = State_Manager(workspace_dir)
         runtime_data = state.setdefault("runtime_data", {})
@@ -87,7 +87,7 @@ class Ai_Agent_05_Story_Arc_Architect:
         tension_data = module_scripting.get("agent_04_tension_analysis", [])
 
         if not script_scenes or not tension_data:
-            raise ValueError(f"[{self.agent_name}] [AG002] CRITICAL: Missing Script or Tension Analysis.")
+            raise ValueError(f"[{self.agent_name}] CRITICAL: Missing Script or Tension Analysis.")
 
         expected_scene_ids = {scene.get("scene_id") for scene in script_scenes if scene.get("scene_id")}
         
@@ -115,7 +115,7 @@ class Ai_Agent_05_Story_Arc_Architect:
         arc_data = response["data"]["agent_05_story_arc"]
         
         if not self._validate_arc_deep(arc_data, expected_scene_ids):
-            raise ValueError(f"[{self.agent_name}] [AG003] Deep Schema Validation Failed. Missing scenes or invalid structure.")
+            raise ValueError(f"[{self.agent_name}] Deep Schema Validation Failed. Missing scenes or invalid structure.")
 
         module_scripting["agent_05_story_arc"] = arc_data
         state.setdefault("metrics", {})[self.agent_name] = response["metrics"]
