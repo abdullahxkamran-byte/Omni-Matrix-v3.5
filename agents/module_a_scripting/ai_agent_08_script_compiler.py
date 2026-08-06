@@ -8,8 +8,14 @@ class Ai_Agent_08_Script_Compiler:
         self.agent_name = "Ai_Agent_08_Script_Compiler"
         self.required_blueprint_keys = [
             "project_metadata",
+            "global_dependency_summary",
             "editorial_audit",
             "master_scenes"
+        ]
+        self.dependency_keys = [
+            "module_b_audio_needs",
+            "module_h_gen_needs",
+            "module_c_blender_needs"
         ]
 
     def _validate_blueprint_deep(self, blueprint: dict, expected_scene_count: int) -> bool:
@@ -19,6 +25,14 @@ class Ai_Agent_08_Script_Compiler:
         for key in self.required_blueprint_keys:
             if key not in blueprint:
                 print(f"[{self.agent_name}] Validation Failed: Missing root key '{key}'.", flush=True)
+                return False
+
+        deps = blueprint.get("global_dependency_summary", {})
+        if not isinstance(deps, dict):
+            return False
+        for dk in self.dependency_keys:
+            if dk not in deps or not isinstance(deps[dk], list):
+                print(f"[{self.agent_name}] Validation Failed: Missing/Invalid dependency list '{dk}'.", flush=True)
                 return False
 
         audit = blueprint.get("editorial_audit", {})
@@ -54,7 +68,7 @@ class Ai_Agent_08_Script_Compiler:
 
         workspace_dir = state.get("workspace_dir", "")
         if not workspace_dir:
-            raise ValueError(f"[{self.agent_name}] [AG001] CRITICAL: 'workspace_dir' missing.")
+            raise ValueError(f"[{self.agent_name}] CRITICAL: 'workspace_dir' missing.")
 
         sm = State_Manager(workspace_dir)
         runtime_data = state.setdefault("runtime_data", {})
@@ -63,7 +77,6 @@ class Ai_Agent_08_Script_Compiler:
         if "agent_08_master_blueprint" in module_scripting:
             del module_scripting["agent_08_master_blueprint"]
 
-        # Fetch all previous fragments
         script_scenes = module_scripting.get("agent_02_script", [])
         storyboard_panels = module_scripting.get("agent_03_storyboard", [])
         tension_data = module_scripting.get("agent_04_tension_analysis", [])
@@ -72,7 +85,7 @@ class Ai_Agent_08_Script_Compiler:
         vibe_data = module_scripting.get("agent_07_vibe", {})
 
         if not (script_scenes and storyboard_panels and tension_data and word_guard_data and vibe_data):
-            raise ValueError(f"[{self.agent_name}] [AG002] CRITICAL: Missing upstream fragments. Agents 02-07 must complete first.")
+            raise ValueError(f"[{self.agent_name}] CRITICAL: Missing upstream fragments. Agents 02-07 must complete first.")
 
         expected_scene_count = len(script_scenes)
         project_id = state.get("project_id", "UNKNOWN_PROJECT")
@@ -99,7 +112,6 @@ class Ai_Agent_08_Script_Compiler:
         
         prompt = Prompt_Manager.load(prompts_dir, "agent_08_compiler.txt", variables)
 
-        # High Temperature for Editorial Synthesis
         gateway = LLM_Gateway()
         response = gateway.generate(
             prompt=prompt,
@@ -112,17 +124,16 @@ class Ai_Agent_08_Script_Compiler:
         blueprint = response["data"]["agent_08_master_blueprint"]
         
         if not self._validate_blueprint_deep(blueprint, expected_scene_count):
-            raise ValueError(f"[{self.agent_name}] [AG003] Validation Failed: Zipped payload corruption detected.")
+            raise ValueError(f"[{self.agent_name}] Validation Failed: Zipped payload corruption detected.")
 
         module_scripting["agent_08_master_blueprint"] = blueprint
         state.setdefault("metrics", {})[self.agent_name] = response["metrics"]
 
-        # USER REQUESTED LOGIC: Orchestrator Handoff Protocol
         pipeline_status = state.setdefault("pipeline_status", {})
         pipeline_status["last_active_agent"] = self.agent_name
         pipeline_status[self.agent_name] = "COMPLETED"
         pipeline_status["module_a_status"] = "FULLY_COMPILED"
-        pipeline_status["ready_for_orchestrator"] = True  # The magic key for universal routing!
+        pipeline_status["ready_for_orchestrator"] = True
 
         sm.save_state(state)
 
