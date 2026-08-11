@@ -8,9 +8,13 @@ import numpy as np
 import scipy.io.wavfile as wavfile
 
 class Music_Inference_Gateway:
-    def __init__(self, workspace_dir: str):
+    # 🔧 FIX 1: Added project_id for strict path isolation
+    def __init__(self, workspace_dir: str, project_id: str = "DEFAULT_PROJECT"):
         self.workspace_dir = workspace_dir
-        self.bgm_exports_dir = os.path.join(self.workspace_dir, "exports", "audio")
+        self.project_id = project_id
+        
+        # 🔧 FIX 1: Path isolated exactly to the project
+        self.bgm_exports_dir = os.path.join(self.workspace_dir, "projects", self.project_id, "exports", "audio")
         os.makedirs(self.bgm_exports_dir, exist_ok=True)
         
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -19,7 +23,9 @@ class Music_Inference_Gateway:
         self.model_name = "facebook/musicgen-medium"
         self.fallback_model_name = "facebook/musicgen-small"
         self.sample_rate = 32000 # Native MusicGen sample rate
-        self.frame_rate = 256 # Exact tokens per second for MusicGen
+        
+        # 🔧 FIX 2: Exact tokens per second for MusicGen (50 instead of 256)
+        self.frame_rate = 50 
 
     def _generate_cache_hash(self, prompt: str, duration: float, seed: int) -> str:
         """Generates deterministic cache key to prevent redundant heavy VRAM usage."""
@@ -39,9 +45,10 @@ class Music_Inference_Gateway:
             self.model = MusicgenForConditionalGeneration.from_pretrained(self.model_name).to(self.device)
             # Optimize for inference
             self.model.eval()
-        except torch.cuda.OutOfMemoryError as e:
-            print(f"[Music_Inference_Gateway] VRAM OOM on {self.model_name}. Falling back to small model...", flush=True)
-            torch.cuda.empty_cache()
+        except Exception as e: # 🔧 FIX 3: Catch all exceptions to guarantee fallback trigger
+            print(f"[Music_Inference_Gateway] VRAM/Load Error on {self.model_name}: {str(e)}. Falling back to small model...", flush=True)
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
             self.model_name = self.fallback_model_name
             self.processor = AutoProcessor.from_pretrained(self.model_name)
             self.model = MusicgenForConditionalGeneration.from_pretrained(self.model_name).to(self.device)
@@ -111,11 +118,17 @@ class Music_Inference_Gateway:
                 pass # Invalid file, regenerate
 
         # 3. Resource Planning & Initialization
-        max_chunk_sec = 25.0  # Generate in 25s safe limits to avoid tensor limits
+        # 🔧 FIX 4: Clamp max_chunk_sec to 20s to ensure tokens NEVER hit 1500 CUDA limit
+        max_chunk_sec = min(20.0, target_duration_sec)
         audio_prompt_overlap_sec = 3.0 # Use 3s of previous chunk to maintain musical continuity
         
         effective_chunk = max_chunk_sec - audio_prompt_overlap_sec
-        num_chunks = max(1, math.ceil(target_duration_sec / effective_chunk))
+        if effective_chunk <= 0: effective_chunk = max_chunk_sec
+        
+        if target_duration_sec <= max_chunk_sec:
+            num_chunks = 1
+        else:
+            num_chunks = max(1, math.ceil((target_duration_sec - max_chunk_sec) / effective_chunk) + 1)
         
         self._load_model()
         torch.manual_seed(seed)
@@ -132,13 +145,18 @@ class Music_Inference_Gateway:
                     # Musical Continuity: Pass the last 3s of previous chunk as audio_prompt
                     if c == 0 or last_audio_tensor is None:
                         inputs = self.processor(text=[prompt], padding=True, return_tensors="pt").to(self.device)
+                        chunk_len = min(max_chunk_sec, target_duration_sec)
                     else:
                         overlap_samples = int(self.sample_rate * audio_prompt_overlap_sec)
                         prompt_audio = last_audio_tensor[-overlap_samples:]
                         inputs = self.processor(text=[prompt], audio=prompt_audio, sampling_rate=self.sample_rate, padding=True, return_tensors="pt").to(self.device)
+                        
+                        remaining_sec = target_duration_sec - (c * effective_chunk)
+                        chunk_len = min(max_chunk_sec, remaining_sec + audio_prompt_overlap_sec)
 
-                    # Exact token math
-                    max_new_tokens = int(self.frame_rate * max_chunk_sec)
+                    # 🔧 FIX 5: Exact token math + Safety Clamp (Max 1200 tokens guaranteed)
+                    new_tokens = int(self.frame_rate * chunk_len)
+                    max_new_tokens = min(1200, max(50, new_tokens))
                     
                     audio_tokens = self.model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=True, guidance_scale=3.0)
                     chunk_audio_np = audio_tokens[0, 0].cpu().numpy()
