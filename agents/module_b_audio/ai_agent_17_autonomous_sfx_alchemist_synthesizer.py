@@ -33,13 +33,20 @@ class Ai_Agent_17_Autonomous_SFX_Alchemist_Synthesizer:
 
     def _apply_filter(self, wave: np.ndarray, filter_cfg: dict, sample_rate: int) -> np.ndarray:
         ftype = filter_cfg.get("type", "none").lower()
-        cutoff = filter_cfg.get("cutoff_hz", 0)
+        cutoff = float(filter_cfg.get("cutoff_hz", 0))
         
-        if ftype == "none" or cutoff <= 0 or cutoff >= sample_rate / 2:
+        # 🔧 FIX 1: Safety clamp for Nyquist limit to prevent SciPy crashes
+        nyquist = sample_rate / 2.0
+        cutoff = max(20.0, min(cutoff, nyquist - 100.0))
+        
+        if ftype not in ["lowpass", "highpass"]:
             return wave
             
-        b, a = signal.butter(2, cutoff / (sample_rate / 2), btype=ftype)
-        return signal.filtfilt(b, a, wave)
+        try:
+            b, a = signal.butter(2, cutoff / nyquist, btype=ftype)
+            return signal.filtfilt(b, a, wave)
+        except Exception:
+            return wave
 
     def _generate_adsr(self, duration_sec: float, adsr: dict, sample_rate: int) -> np.ndarray:
         total_samples = int(sample_rate * duration_sec)
@@ -185,7 +192,8 @@ class Ai_Agent_17_Autonomous_SFX_Alchemist_Synthesizer:
         module_scripting = runtime_data.get("module_a_scripting", {})
         module_audio = runtime_data.setdefault("module_b_audio", {})
 
-        sfx_exports_dir = os.path.join(workspace_dir, "exports", "sfx")
+        # 🔧 FIX 2: Strict Project Path Isolation (Rule 2)
+        sfx_exports_dir = os.path.join(workspace_dir, "projects", project_id, "exports", "sfx")
         os.makedirs(sfx_exports_dir, exist_ok=True)
 
         # Dynamic Audio Config
