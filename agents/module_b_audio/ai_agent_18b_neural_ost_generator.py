@@ -20,6 +20,11 @@ class Ai_Agent_18b_Neural_OST_Generator:
         runtime_data = state.setdefault("runtime_data", {})
         module_audio = runtime_data.setdefault("module_b_audio", {})
 
+        # 🔧 FIX 1: Idempotency Scrubbing (Rule 3)
+        if "agent_18b_ost_manifest" in module_audio:
+            del module_audio["agent_18b_ost_manifest"]
+            print(f"[{self.agent_name}] Idempotency sweep executed.", flush=True)
+
         # Fetch Input Blueprints
         bgm_blueprint = module_audio.get("agent_18_bgm_blueprint", {})
         global_timestamps = module_audio.get("agent_12_global_timestamps", {})
@@ -28,16 +33,17 @@ class Ai_Agent_18b_Neural_OST_Generator:
             raise ValueError(f"[{self.agent_name}] [AG002] CRITICAL: Missing Agent 18 Blueprint or Agent 12 Timestamps.")
 
         generative_prompt = bgm_blueprint.get("agent_18b_generative_prompt", "")
-        # Get precise timeline duration for exact BGM length
-        target_duration = global_timestamps.get("total_calculated_duration_sec", 0.0)
+        
+        # 🔧 FIX 2: Default fallback to 15.0s to prevent zero-duration crash
+        target_duration = global_timestamps.get("total_calculated_duration_sec", 15.0)
 
         if not generative_prompt:
             generative_prompt = "Cinematic epic background music score, dark synth, 120 bpm"
 
         output_filename = f"{project_id}_master_bgm_ost.wav"
 
-        # Initialize Configurable Gateway
-        gateway = Music_Inference_Gateway(workspace_dir)
+        # 🔧 FIX 3: Initialize Configurable Gateway with project_id for Path Isolation
+        gateway = Music_Inference_Gateway(workspace_dir, project_id=project_id)
         
         # We set keep_in_vram=False because Agent 19 (Mixing) doesn't need GPU, 
         # but Module C (Blender) will need the GPU next! Rule 10 pipeline safety.
