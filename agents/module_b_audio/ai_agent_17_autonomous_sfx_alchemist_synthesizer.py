@@ -22,19 +22,42 @@ class Ai_Agent_17_Autonomous_SFX_Alchemist_Synthesizer:
         mass = max(0.0001, float(params.get("mass_kg", 0.01)))
         stiffness = float(params.get("stiffness_k", 50000.0))
         force = float(params.get("impact_force", 10.0))
-        decay = float(params.get("decay_rate", 20.0))
+        decay = max(1.0, min(15.0, float(params.get("decay_rate", 5.0))))
         
-        derived_freq_hz = (1.0 / (2 * np.pi)) * np.sqrt(stiffness / mass)
-        derived_freq_hz = min(derived_freq_hz, self.sample_rate / 2.2)
+        sweep_start = float(params.get("pitch_sweep_start", 1.0))
+        sweep_end = float(params.get("pitch_sweep_end", 1.0))
+        sub_blend = float(params.get("sub_bass_blend", 0.2))
         
-        oscillator = np.sin(2 * np.pi * derived_freq_hz * t) * np.exp(-decay * t)
+        base_freq_hz = (1.0 / (2.0 * np.pi)) * np.sqrt(stiffness / mass)
+        base_freq_hz = min(base_freq_hz, self.sample_rate / 2.2)
         
-        attack_samples = int(self.sample_rate * 0.01)
-        impact_noise = np.random.uniform(-1.0, 1.0, total_samples)
+        # 1. Pitch-Modulated Oscillator (Frequency Sweep for Lasers/Beams/Charge-ups)
+        freq_curve = np.linspace(base_freq_hz * sweep_start, base_freq_hz * sweep_end, total_samples)
+        phase = 2.0 * np.pi * np.cumsum(freq_curve) / self.sample_rate
+        main_osc = np.sin(phase)
+        
+        # 2. Sub-Bass Fundamental (Low-end body rumble)
+        sub_freq_hz = min(60.0, base_freq_hz * 0.25)
+        sub_osc = np.sin(2.0 * np.pi * sub_freq_hz * t) * sub_blend
+        
+        # 3. Smooth Envelope (Prevents instant 0.02s cutoff silence)
+        envelope = np.exp(-decay * t)
+        
+        # Add smooth tail release to prevent sudden pop/click at ending
+        fade_samples = int(self.sample_rate * 0.05)
+        fade_out = np.ones(total_samples)
+        if total_samples > fade_samples:
+            fade_out[-fade_samples:] = np.linspace(1.0, 0.0, fade_samples)
+        
+        # 4. Shaped Impact Noise Grain (Attack transient)
+        attack_samples = int(self.sample_rate * 0.03)
+        impact_noise = np.random.uniform(-0.5, 0.5, total_samples)
         noise_envelope = np.zeros(total_samples)
-        noise_envelope[:attack_samples] = np.linspace(1.0, 0.0, attack_samples)
-        
-        master_wave = (oscillator + (impact_noise * noise_envelope)) * force
+        if total_samples > attack_samples:
+            noise_envelope[:attack_samples] = np.linspace(1.0, 0.0, attack_samples)
+            
+        combined_wave = ((main_osc + sub_osc) * envelope) + (impact_noise * noise_envelope)
+        master_wave = combined_wave * force * fade_out
         
         peak = np.max(np.abs(master_wave))
         if peak > 0:
@@ -55,7 +78,7 @@ class Ai_Agent_17_Autonomous_SFX_Alchemist_Synthesizer:
         runtime_data = state.setdefault("runtime_data", {})
         module_audio = runtime_data.setdefault("module_b_audio", {})
 
-        # Directory Setup (Dual Copy Architecture)
+        # Setup Dual Paths
         project_sfx_dir = os.path.join(workspace_dir, "projects", project_id, "exports", "sfx")
         global_library_dir = os.path.join(workspace_dir, "library", "sfx_vault")
         
@@ -65,7 +88,7 @@ class Ai_Agent_17_Autonomous_SFX_Alchemist_Synthesizer:
         if "agent_17_sfx_registry" in module_audio:
             del module_audio["agent_17_sfx_registry"]
 
-        # Fetching dynamic data from Module A (Agent 08)
+        # Fetch Agent 08 Blueprint Data
         agent_08_data = runtime_data.get("module_a_scripting", {}).get("agent_08_master_blueprint", {})
         if not agent_08_data:
              raise ValueError(f"[{self.agent_name}] CRITICAL: Missing Agent 08 Blueprint. Cannot generate dynamic SFX.")
@@ -73,7 +96,6 @@ class Ai_Agent_17_Autonomous_SFX_Alchemist_Synthesizer:
         master_scenes = agent_08_data.get("master_scenes", [])
         global_audio_needs = agent_08_data.get("global_dependency_summary", {}).get("module_b_audio_needs", "None specified")
 
-        # Isolate only scenes that actively demand Foley/SFX to save LLM context window
         targeted_audio_blocks = []
         for scene in master_scenes:
             audio_block = scene.get("audio_block", {})
@@ -119,12 +141,10 @@ class Ai_Agent_17_Autonomous_SFX_Alchemist_Synthesizer:
             scene_id = recipe.get("scene_id", "SCENE_X").upper()
             semantic_name = recipe.get("semantic_name", "Acoustic_Asset")
             
-            # Safe strings for file naming
             safe_semantic = "".join([c if c.isalnum() else "_" for c in semantic_name])
             mode = recipe.get("generation_mode", "HYBRID_FUSION")
             duration_sec = float(recipe.get("duration_sec", 1.0))
             
-            # Dual Copy Paths
             project_filename = f"{project_id}_{scene_id}_{safe_semantic}.wav"
             library_filename = f"{safe_semantic}.wav"
             
@@ -141,7 +161,7 @@ class Ai_Agent_17_Autonomous_SFX_Alchemist_Synthesizer:
                     physics_params = recipe.get("physics_transient", {})
                     if physics_params:
                         transient_wave = self._generate_physics_transient(physics_params, duration_sec)
-                        final_mix += (transient_wave * 0.8)
+                        final_mix += (transient_wave * 0.85)
 
                 if mode in ["PURE_NEURAL", "HYBRID_FUSION"]:
                     neural_params = recipe.get("neural_body", {})
@@ -156,7 +176,7 @@ class Ai_Agent_17_Autonomous_SFX_Alchemist_Synthesizer:
                         elif len(body_wave) < total_samples:
                             body_wave = np.pad(body_wave, (0, total_samples - len(body_wave)), 'constant')
                             
-                        final_mix += (body_wave * 0.6)
+                        final_mix += (body_wave * 0.65)
 
                 peak_abs = np.max(np.abs(final_mix))
                 if peak_abs > 0.0001:
@@ -164,10 +184,10 @@ class Ai_Agent_17_Autonomous_SFX_Alchemist_Synthesizer:
                 
                 audio_int16 = np.int16(final_mix * 32767)
                 
-                # 1. Save to Project Folder (For Agent 19 Mixer)
+                # Save Project Copy
                 wavfile.write(project_output_path, self.sample_rate, audio_int16)
                 
-                # 2. Copy to Global Asset Library (Building internal Vault)
+                # Save Vault Copy
                 shutil.copy2(project_output_path, library_output_path)
                 
                 with open(project_output_path, "rb") as f:
@@ -178,6 +198,7 @@ class Ai_Agent_17_Autonomous_SFX_Alchemist_Synthesizer:
                     "scene_id": scene_id,
                     "semantic_name": semantic_name,
                     "mode": mode,
+                    "output_path": project_output_path,  # Backward compatibility key for Agent 19 Mixer
                     "project_path": project_output_path,
                     "library_path": library_output_path,
                     "validation": "PASSED"
