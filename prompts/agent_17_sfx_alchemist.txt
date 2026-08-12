@@ -21,24 +21,24 @@ Do NOT output "Hz" or frequency. Output pure physical material properties:
 - decay_rate (e.g., 5.0 for long ringing, 50.0 for dry thud)
 
 Return ONLY valid JSON containing a dynamically generated array of SFX recipes based on the INPUT DATA. Use this exact schema format:
-{
+{{
   "agent_17_sfx_recipes": [
-    {
+    {{
       "sfx_id": "SFX_001",
       "scene_id": "scene_01",
       "semantic_name": "Heavy Wooden Door Creak",
       "generation_mode": "HYBRID_FUSION",
       "duration_sec": 2.0,
-      "physics_transient": {
+      "physics_transient": {{
         "mass_kg": 15.0,
         "stiffness_k": 45000,
         "impact_force": 10.0,
         "decay_rate": 30.0
-      },
-      "neural_body": {
+      }},
+      "neural_body": {{
         "prompt": "Highly detailed close up recording of an old heavy wooden door slowly creaking open, dry studio environment",
         "guidance_scale": 3.5
-      }
-    }
+      }}
+    }}
   ]
-}
+}}
